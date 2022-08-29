@@ -133,7 +133,7 @@ void VrCompositorRenderer::updateHeadsetParams(const MVrHeadsetParams &mDP) {
 void VrCompositorRenderer::addLayer(const TexturedStereoMeshData &meshData,VrContentProvider vrContentProvider,HEAD_TRACKING headTracking) {
     //MLOGD<<"Add layer";
     VRLayer vrLayer;
-    if(headTracking==HEAD_TRACKING::NONE){
+    /*if(headTracking==HEAD_TRACKING::NONE){
         TexturedMeshData distortedMeshData1=distortMesh(GVR_LEFT_EYE, TexturedStereoVertexHelper::convert(meshData, true));
         TexturedMeshData distortedMeshData2=distortMesh(GVR_RIGHT_EYE, TexturedStereoVertexHelper::convert(meshData, false));
         vrLayer.meshLeftAndRightEye=nullptr;
@@ -141,7 +141,8 @@ void VrCompositorRenderer::addLayer(const TexturedStereoMeshData &meshData,VrCon
         vrLayer.optionalRightEyeDistortedMesh=std::make_unique<TexturedGLMeshBuffer>(distortedMeshData2);
     }else{
         vrLayer.meshLeftAndRightEye=std::make_unique<TexturedStereoGLMeshBuffer>(meshData);
-    }
+    }*/
+    vrLayer.meshLeftAndRightEye=std::make_unique<TexturedStereoGLMeshBuffer>(meshData);
     vrLayer.contentProvider=vrContentProvider;
     vrLayer.headTracking=headTracking;
     mVrLayerList.push_back(std::move(vrLayer));
@@ -153,8 +154,8 @@ void VrCompositorRenderer::addLayer2DCanvas(float z, float width, float height,V
 }
 
 void VrCompositorRenderer::addLayerSphere360(float radius,UvSphere::MEDIA_FORMAT format,VrContentProvider vrContentProvider) {
-    const auto sphere=SphereBuilder::createSphereEquirectangularMonoscopic(radius, 72, 36,format);
-    addLayer(sphere,vrContentProvider,HEAD_TRACKING::FULL);
+    const auto sphere=SphereBuilder::createSphereEquirectangularMonoscopic(radius, 64, 40,format); // 180/2 = 90, 112.5/2 ~= 56
+    addLayer(sphere,vrContentProvider,HEAD_TRACKING::NONE);
 }
 
 void VrCompositorRenderer::drawLayers(gvr::Eye eye) {
@@ -177,7 +178,7 @@ void VrCompositorRenderer::drawLayers(gvr::Eye eye) {
 
         const GLint textureId=isExternalTexture ? std::get<SurfaceTextureUpdate*>(layer.contentProvider)->getTextureId() :
                               std::get<VrRenderBuffer2*>(layer.contentProvider)->getLatestRenderedTexture(isNewFrame,timingInformation);
-        if(layer.headTracking==HEAD_TRACKING::NONE){
+        /*if(layer.headTracking==HEAD_TRACKING::NONE){
             TexturedGLMeshBuffer* distortedMesh= eye == GVR_LEFT_EYE ? layer.optionalLeftEyeDistortedMesh.get() :
                     layer.optionalRightEyeDistortedMesh.get();
             AGLProgramTexture* glProgramTexture2D= isExternalTexture ? (AGLProgramTexture*) mGLProgramTextureExt2D.get() : (AGLProgramTexture*)mGLProgramTexture2D.get();
@@ -188,7 +189,9 @@ void VrCompositorRenderer::drawLayers(gvr::Eye eye) {
         }
         if(!isExternalTexture && isNewFrame){
             //MLOGD<<"Latency of osd "<<MyTimeHelper::R(std::chrono::steady_clock::now()-timingInformation.startSubmitCommands);
-        }
+        }*/
+        AGLProgramTexture* glProgramTexture= isExternalTexture ? (AGLProgramTexture*) mGLProgramTextureExtVDDC.get() : (AGLProgramTexture*) mGLProgramTextureVDDC.get();
+        glProgramTexture->drawXStereoVertex(textureId,viewM,mProjectionM[EYE_IDX],*layer.meshLeftAndRightEye,eye==GVR_LEFT_EYE);
     }
     // Render the mesh that occludes everything except the part actually visible inside the headset
     if (ENABLE_VIGNETTE) {

@@ -79,7 +79,7 @@ public:
     static TexturedStereoMeshData
     createSphereEquirectangularMonoscopic(float radius=1.0f, int latitudes=64, int longitudes=32,UvSphere::MEDIA_FORMAT format=UvSphere::MEDIA_EQUIRECT_MONOSCOPIC) {
         static_assert(sizeof(TexturedStereoVertex) == sizeof(UvSphere::Vertex));
-        auto vertexDataAsInGvr=UvSphere::createUvSphere(radius,latitudes,longitudes,180,360,UvSphere::MEDIA_EQUIRECT_MONOSCOPIC,UvSphere::ROTATE_UNKNOWN);
+        auto vertexDataAsInGvr=UvSphere::createUvSphere(radius,latitudes,longitudes,80,128,UvSphere::MEDIA_EQUIRECT_MONOSCOPIC,UvSphere::ROTATE_UNKNOWN);
         auto vertexData= *reinterpret_cast<std::vector<TexturedStereoVertex>*>(&vertexDataAsInGvr);
         return TexturedStereoMeshData(vertexData,GL_TRIANGLE_STRIP);
     }
