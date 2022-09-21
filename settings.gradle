@@ -13,4 +13,6 @@ include ':Shared'
 project(':Shared').projectDir=new File('LiveVideo10ms\\Shared')
 include ':VideoCore'
 project(':VideoCore').projectDir=new File('LiveVideo10ms\\VideoCore')
+include ':GstreamerVideo'
+project(':GstreamerVideo').projectDir=new File('..\\gstreamerVideo');
 // Building with git submodules end

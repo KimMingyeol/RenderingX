@@ -18,6 +18,8 @@ import constantin.video.core.gl.ISurfaceTextureAvailable;
 import constantin.video.core.player.VideoPlayer;
 import constantin.video.core.player.VideoSettings;
 
+import com.example.gstreamer_android.GStreamerSurfaceView;
+
 //Uses the LiveVideo10ms VideoCore lib which is intended for live streaming, not file playback.
 //I recommend using android MediaPlayer if only playback from file is needed
 
@@ -31,11 +33,13 @@ public class AExample360Video extends VrActivity {
     public static final String KEY_SPHERE_MODE ="KEY_SPHERE_MODE";
     public static final String KEY_VIDEO_FILENAME="KEY_VIDEO_FILENAME";
     // Only one of these two is in use at the same time
-    private static final boolean USE_GOOGLE_EXO_PLAYER_INSTEAD =false;
+    private static final boolean USE_GOOGLE_EXO_PLAYER_INSTEAD = true;
     // ExoPlayer is the better choice for file playback, but my VideoPlayer
     // Is the better choice for low latency h264 live video playback
     private VideoPlayer videoPlayer;
     private ExoPlayer simpleExoPlayer;
+
+    private GStreamerSurfaceView gStreamerSurfaceView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,9 +51,12 @@ public class AExample360Video extends VrActivity {
         final VrView mVrView=new VrView(this);
         //mVrView.enableSuperSync();
 
+        gStreamerSurfaceView = new GStreamerSurfaceView(this);
+
         // Use one of both ! Default to the player from VideoCore
         if(USE_GOOGLE_EXO_PLAYER_INSTEAD){
            simpleExoPlayer=createAndConfigureExoPlayer(this);
+//           simpleExoPlayer.setVideoSurfaceView(gStreamerSurfaceView);
         }else{
             VideoSettings.setVS_SOURCE(this, VideoSettings.VS_SOURCE.ASSETS);
             VideoSettings.setVS_ASSETS_FILENAME_TEST_ONLY(this,VIDEO_FILENAME);
@@ -69,7 +76,7 @@ public class AExample360Video extends VrActivity {
         Renderer360Video renderer = new Renderer360Video(this,mVrView.getGvrApi(), SPHERE_MODE);
         mVrView.getPresentationView().setRenderer(renderer,USE_GOOGLE_EXO_PLAYER_INSTEAD ? iSurfaceTextureAvailableExoPlayer : videoPlayer.configure2());
         mVrView.getPresentationView().setISecondaryContext(renderer);
-        setContentView(mVrView);
+        setContentView(gStreamerSurfaceView);
     }
 
     @Override
@@ -93,7 +100,7 @@ public class AExample360Video extends VrActivity {
         final Uri uri = RawResourceDataSource.buildRawResourceUri(R.raw.test_room1_1920mono);
         final MediaItem mediaItem = MediaItem.fromUri(uri);
         exoPlayer.setMediaItem(mediaItem);
-        exoPlayer.setRepeatMode(Player.REPEAT_MODE_ALL);
+//        exoPlayer.setRepeatMode(Player.REPEAT_MODE_ALL);
         exoPlayer.prepare();
         return exoPlayer;
     }

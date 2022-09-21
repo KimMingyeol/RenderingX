@@ -80,6 +80,7 @@ dependencies {
     //Use either the artifacts from jitpack or provide a path directly
     implementation project(path: ':Shared')
     implementation project(path: ':VideoCore')
+    implementation project(path: ':GstreamerVideo')
     //implementation "com.github.Consti10.LiveVideo10ms:VideoCore:99e86293"
     //test
     //implementation 'com.android.ndk.thirdparty:curl:7.68.0-alpha-1'
@@ -87,5 +88,8 @@ dependencies {
 
     //implementation 'com.google.android.exoplayer:exoplayer:2.17.0'
     implementation 'com.google.android.exoplayer:exoplayer-core:2.17.0'
+
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.5.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.0'
 }
 apply plugin: 'com.google.gms.google-services'
