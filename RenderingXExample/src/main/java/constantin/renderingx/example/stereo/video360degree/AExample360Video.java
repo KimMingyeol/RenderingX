@@ -73,10 +73,24 @@ public class AExample360Video extends VrActivity {
                 simpleExoPlayer.setVideoSurface(null);
             }
         };
+
+        final ISurfaceTextureAvailable iSurfaceTextureAvailableGstreamer = new ISurfaceTextureAvailable() {
+            @Override
+            public void surfaceTextureCreated(SurfaceTexture surfaceTexture, Surface surface) {
+                gStreamerSurfaceView.surfaceChanged(surface);
+            }
+
+            @Override
+            public void surfaceTextureDestroyed() {
+                gStreamerSurfaceView.surfaceDestroyed();
+            }
+        };
+
         Renderer360Video renderer = new Renderer360Video(this,mVrView.getGvrApi(), SPHERE_MODE);
-        mVrView.getPresentationView().setRenderer(renderer,USE_GOOGLE_EXO_PLAYER_INSTEAD ? iSurfaceTextureAvailableExoPlayer : videoPlayer.configure2());
+//        mVrView.getPresentationView().setRenderer(renderer,USE_GOOGLE_EXO_PLAYER_INSTEAD ? iSurfaceTextureAvailableExoPlayer : videoPlayer.configure2());
+        mVrView.getPresentationView().setRenderer(renderer,iSurfaceTextureAvailableGstreamer);
         mVrView.getPresentationView().setISecondaryContext(renderer);
-        setContentView(gStreamerSurfaceView);
+        setContentView(mVrView);
     }
 
     @Override

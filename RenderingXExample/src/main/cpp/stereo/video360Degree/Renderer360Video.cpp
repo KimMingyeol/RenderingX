@@ -41,7 +41,7 @@ void Renderer360Video::onSurfaceCreated(JNIEnv *env, jobject context,jobject sur
         vrCompositorRenderer.addLayer(sphere,&surfaceTextureUpdate, VrCompositorRenderer::HEAD_TRACKING::FULL);
     }
     const float uiElementWidth=2.0;
-    vrCompositorRenderer.addLayer2DCanvas(-3, uiElementWidth,uiElementWidth*1080.0f/2160.0f,&vrRenderBuffer2, VrCompositorRenderer::FULL);
+//    vrCompositorRenderer.addLayer2DCanvas(-3, uiElementWidth,uiElementWidth*1080.0f/2160.0f,&vrRenderBuffer2, VrCompositorRenderer::FULL);
     // add a static layer to test the pre-distort feature
     //vrCompositorRenderer.addLayer2DCanvas(-3,0.2f,0.2f,mSomethingTexture,false,VrCompositorRenderer::NONE);
 }
