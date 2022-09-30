@@ -28,6 +28,10 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     private boolean isAccessingShared = false;
     private final int stopThresh = 3;
 
+    private final double maxTiltAngle = 26;
+    private final double minTiltAngle = -21.5;
+    private double headTiltPercentage = -10;
+
 //    private SensorManager sensorManager;
 //    private Sensor accel;
 
@@ -38,7 +42,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     public OutputStream outputStream;
     private Socket socket = null;
     private String ip = ""; // D3 robot's IP
-    private int port = 22023;
+    private int port;
 
     Thread threadReceive;
     Thread threadCommand;
@@ -48,6 +52,10 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     private double beta0 = 3000;
     private double beta = 3000;
     private double angle_thresh = 10;
+/*
+    private double prevalpha = 0; // for test
+    private double maxrot = 0;
+    */
 
     private double throt = 0;
     private double rot = 0;
@@ -198,10 +206,58 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                 + String.valueOf(turn)
                 + "}"
                 + "}";
-        Log.e("send: ", jsonString);
+//        Log.e("send: ", jsonString);
         byte[] cmd = jsonString.getBytes();
         outputStream.write(cmd);
     }
+
+    public void commandTiltMove(double speed) throws IOException {
+        String jsonString = "{"
+                + "\"c\": \"tilt.move\","
+                + "\"d\": {"
+                + "\"speed\": "
+                + String.valueOf(speed)
+                + "}"
+                + "}";
+        byte[] cmd = jsonString.getBytes();
+        outputStream.write(cmd);
+    }
+
+    public void commandTiltTarget(double percent) throws IOException {
+        String jsonString = "{"
+                + "\"c\": \"tilt.target\","
+                + "\"d\": {"
+                + "\"percent\": "
+                + String.valueOf(percent)
+                + "}"
+                + "}";
+        byte[] cmd = jsonString.getBytes();
+        outputStream.write(cmd);
+    }
+
+    public void commandTiltMinLimitDisable() throws IOException {
+        String jsonString = "{"
+                + "\"c\": \"tilt.minLimit.disable\""
+                + "}";
+        byte[] cmd = jsonString.getBytes();
+        outputStream.write(cmd);
+    }
+
+    public double percentageToTiltAngle(double percentage) {
+        assert(percentage >=0 && percentage <= 1);
+        return minTiltAngle * percentage + maxTiltAngle * (1-percentage);
+    }
+
+    public double tiltAngleToPercentage(double tiltAngle){
+        if(tiltAngle <= minTiltAngle) {
+            return 1;
+        } else if(tiltAngle >= maxTiltAngle) {
+            return 0;
+        } else {
+            return (maxTiltAngle - tiltAngle)/(maxTiltAngle - minTiltAngle);
+        }
+    }
+
 
 /*
     @Override
@@ -245,14 +301,25 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                         Log.e("waiting for", "outputStream socket...");
                         threadCommand.sleep(1000);
                     }
+
+                    commandTiltMinLimitDisable();
+                    threadCommand.sleep(100);
+                    commandTiltMove(0.75);
+                    threadCommand.sleep(100);
+                    commandTiltMove(0);
+                    threadCommand.sleep(100);
+                    commandTiltTarget(tiltAngleToPercentage(0));
+                    threadCommand.sleep(100);
+
                     commandRetract();
                     threadCommand.sleep(2000);
+
                     commandResetOrigin();
                     threadCommand.sleep(500);
                     commandSubscribe();
-
                     threadCommand.sleep(100);
-                    while (alpha == 3000 || beta == 3000) {
+
+                    while (alpha == 3000 || beta == 3000 || headTiltPercentage == -10) {
                         Log.e("threadCommand Loop: ", "waiting for angle sync...");
                         threadCommand.sleep(100);
                     }
@@ -301,7 +368,14 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
 //                            Log.e("rot_angle: ", String.valueOf(rot_angle * Math.PI / 180) + ", dbeta: " + String.valueOf(dbeta) + ", dalpha: " + String.valueOf(dalpha) + ", alpha: " + String.valueOf(alpha) + ", alpha0: " + String.valueOf(alpha0));
 //                            commandNavigate(0, rot_angle > 0 ? -Math.min(1, rot_angle * Math.PI / 180) : Math.min(1, -rot_angle * Math.PI / 180));
 //                        }
-                        threadCommand.sleep(200);
+/*
+                        maxrot = Math.abs(alpha - prevalpha) > maxrot ? Math.abs(alpha - prevalpha) : maxrot;
+                        Log.e("200ms rot angle: ", String.valueOf(maxrot)); // Test Result; 200ms rot angle:: 15.860699865459864
+                        prevalpha = alpha;
+                        */
+                        threadCommand.sleep(100);
+                        commandTiltTarget(headTiltPercentage);
+                        threadCommand.sleep(100);
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -315,16 +389,18 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     @Override
     public void onStep() {
         while(isAccessingShared) {
-            Log.d("onStep: ", "Waiting for Lock");
+            Log.d("onStep: ", "Waiting for Lock"); // This lock may be needed for other resources, like headTiltPercentage... IDK..
         }
         isAccessingShared = true;
         isStepping = true;
         consecutiveStop = 0;
         isAccessingShared = false;
     }
+
     // StepCounter.HeadingListener
     @Override
     public void onRotation(double angleX, double angleY) {
         beta = angleX * (180 / Math.PI);
+        headTiltPercentage = tiltAngleToPercentage(angleY * (180 / Math.PI));
     }
 }
