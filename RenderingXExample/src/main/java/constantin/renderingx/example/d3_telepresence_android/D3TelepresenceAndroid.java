@@ -22,8 +22,11 @@ import constantin.renderingx.example.stepcounter.StepCounter;
 /* From KimMingyeol/d3_telepresence_android repo. */
 public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCounter.HeadingListener {
     private StepCounter stepCounter;
-    private int currStep = 0; // updating numStep on two separate threads may lead to race condition
-    private int prevStep = 0;
+
+    private boolean isStepping = false; // Shared (between two separate threads)
+    private int consecutiveStop = 0; // Shared
+    private boolean isAccessingShared = false;
+    private final int stopThresh = 3;
 
 //    private SensorManager sensorManager;
 //    private Sensor accel;
@@ -34,7 +37,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     public InputStream inputStream;
     public OutputStream outputStream;
     private Socket socket = null;
-    private String ip = "141.223.209.154";
+    private String ip = ""; // D3 robot's IP
     private int port = 22023;
 
     Thread threadReceive;
@@ -195,7 +198,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                 + String.valueOf(turn)
                 + "}"
                 + "}";
-//        Log.e("send: ", jsonString);
+        Log.e("send: ", jsonString);
         byte[] cmd = jsonString.getBytes();
         outputStream.write(cmd);
     }
@@ -279,16 +282,25 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                             rot_angle = dbeta >= dalpha ? -(360 - Math.abs(dbeta - dalpha)) : 360 - Math.abs(dbeta - dalpha);
                         }
 
+                        while(isAccessingShared) {
+                            Log.d("threadCommand: ", "Waiting for Lock");
+                        }
+                        isAccessingShared = true;
+                        consecutiveStop++;
+                        if(consecutiveStop > stopThresh) {
+                            isStepping = false;
+                        }
+                        throt = isStepping ? 0.5 : 0;
+                        isAccessingShared = false;
 //                        rot = Math.abs(rot_angle) > angle_thresh ? (rot_angle > 0 ? -Math.min(1, rot_angle * Math.PI / 180) : Math.min(1, -rot_angle * Math.PI / 180)) : 0;
                         rot = Math.abs(rot_angle) > angle_thresh ? (rot_angle > 0 ? -1 : 1) : 0;
-                        throt = currStep > prevStep ? 0.5 : 0;
+//                        Log.e("Step update: ", String.valueOf(currStep) + " vs " + String.valueOf(prevStep));
                         commandNavigate(throt, rot);
 //                        if (Math.abs(rot_angle) > angle_thresh) {
 ////                            commandTurnBy(rot_angle); // 속도 제어가 불가능한 것으로 보임
 //                            Log.e("rot_angle: ", String.valueOf(rot_angle * Math.PI / 180) + ", dbeta: " + String.valueOf(dbeta) + ", dalpha: " + String.valueOf(dalpha) + ", alpha: " + String.valueOf(alpha) + ", alpha0: " + String.valueOf(alpha0));
 //                            commandNavigate(0, rot_angle > 0 ? -Math.min(1, rot_angle * Math.PI / 180) : Math.min(1, -rot_angle * Math.PI / 180));
 //                        }
-                        prevStep = currStep;
                         threadCommand.sleep(200);
                     }
                 } catch (IOException | InterruptedException e) {
@@ -302,7 +314,13 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     // StepCounter.StepListener
     @Override
     public void onStep() {
-        currStep++;
+        while(isAccessingShared) {
+            Log.d("onStep: ", "Waiting for Lock");
+        }
+        isAccessingShared = true;
+        isStepping = true;
+        consecutiveStop = 0;
+        isAccessingShared = false;
     }
     // StepCounter.HeadingListener
     @Override
