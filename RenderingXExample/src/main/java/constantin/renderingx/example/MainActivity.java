@@ -3,6 +3,8 @@ package constantin.renderingx.example;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Spinner;
@@ -10,10 +12,13 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import constantin.renderingx.core.deviceinfo.AWriteGLESInfo;
 import constantin.renderingx.core.deviceinfo.Extensions;
 import constantin.renderingx.core.vrsettings.FSettingsVR;
+import constantin.renderingx.example.d3_telepresence_android.D3TelepresenceAndroid;
 import constantin.renderingx.example.mono.AExampleRendering;
 import constantin.renderingx.example.stereo.distortion.AExampleDistortion;
 import constantin.renderingx.example.stereo.video360degree.AExample360Video;
@@ -37,6 +42,16 @@ public class MainActivity extends AppCompatActivity {
 
         //This retreives any HW info needed for the app
         AWriteGLESInfo.writeGLESInfoIfNeeded(this);
+
+        // ACTIVITY_RECOGNITION permission (From d3_telepresence_android repo)
+/*
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
+            // Permission is not granted
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACTIVITY_RECOGNITION}, 1000);
+            }
+        }
+*/
 
         findViewById(R.id.button).setOnClickListener(new View.OnClickListener() {
             @Override

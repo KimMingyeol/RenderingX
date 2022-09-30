@@ -14,6 +14,7 @@ import com.google.android.exoplayer2.upstream.RawResourceDataSource;
 import constantin.renderingx.core.views.VrActivity;
 import constantin.renderingx.core.views.VrView;
 import constantin.renderingx.example.R;
+import constantin.renderingx.example.d3_telepresence_android.D3TelepresenceAndroid;
 import constantin.video.core.gl.ISurfaceTextureAvailable;
 import constantin.video.core.player.VideoPlayer;
 import constantin.video.core.player.VideoSettings;
@@ -40,6 +41,7 @@ public class AExample360Video extends VrActivity {
     private ExoPlayer simpleExoPlayer;
 
     private GStreamerSurfaceView gStreamerSurfaceView;
+    private D3TelepresenceAndroid d3TelepresenceAndroid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +54,9 @@ public class AExample360Video extends VrActivity {
         //mVrView.enableSuperSync();
 
         gStreamerSurfaceView = new GStreamerSurfaceView(this);
+
+        d3TelepresenceAndroid = new D3TelepresenceAndroid(this);
+        d3TelepresenceAndroid.startSync();
 
         // Use one of both ! Default to the player from VideoCore
         if(USE_GOOGLE_EXO_PLAYER_INSTEAD){
