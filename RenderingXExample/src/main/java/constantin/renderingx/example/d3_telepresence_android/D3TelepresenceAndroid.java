@@ -32,17 +32,11 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     private final double minTiltAngle = -21.5;
     private double headTiltPercentage = -10;
 
-//    private SensorManager sensorManager;
-//    private Sensor accel;
-
-//    private float rotMatrix[];
-//    private float orientation[];
-
     public InputStream inputStream;
     public OutputStream outputStream;
     private Socket socket = null;
     private String ip = ""; // D3 robot's IP
-    private int port;
+    private int port = -1;
 
     Thread threadReceive;
     Thread threadCommand;
@@ -52,10 +46,6 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     private double beta0 = 3000;
     private double beta = 3000;
     private double angle_thresh = 10;
-/*
-    private double prevalpha = 0; // for test
-    private double maxrot = 0;
-    */
 
     private double throt = 0;
     private double rot = 0;
@@ -65,18 +55,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
         stepCounter = new StepCounter(context, Constants.IS_POSITIVE_HEADING_CLOCKWISE);
         stepCounter.addStepListener(this, uiHandler);
         stepCounter.addHeadingListener(this, uiHandler, Math.toRadians(0.5), Double.POSITIVE_INFINITY);
-/*
-        sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-        accel = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 
-        if(accel != null) {
-            sensorManager.registerListener(this, accel, 2500);
-        } else {
-            Log.e("error: ", "no rotation sensor");
-        }
-        rotMatrix = new float[16];
-        orientation = new float[3];
-*/
         threadReceive = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -90,7 +69,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
 
                 try {
                     while(inputStream == null) {
-                        Log.e("waiting for", "inputStream socket...");
+                        Log.d("waiting for", "inputStream socket...");
                         threadReceive.sleep(1000);
                     }
                 } catch (InterruptedException e) {
@@ -102,7 +81,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                 int bytes;
 
                 while(true) {
-                    try { // 맨 처음 데이터가 json 중간부터 시작하는 데이터가 아니라는 가정 하에 짠 코드이다.
+                    try { // This code assumes that the first incoming data always starts from the beginning of JSON data.
                         bytes = inputStream.read(buffer);
                         String rcvd = new String(buffer, 0, bytes);
                         String[] rcvd_arr = rcvd.split("\n");
@@ -111,12 +90,10 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                         JSONObject jsonObject_base;
 
                         for (int i=0; i<rcvd_arr.length; i++) {
-//                            Log.e(String.valueOf(i) + ". Received from d3: ", rcvd_arr[i]);
                             queued_str += rcvd_arr[i];
                             try {
                                 jsonObject = new JSONObject(queued_str);
                             } catch (JSONException e) {
-//                                Log.e("JSON Conversion Failed!", "rcvd_arr[" + String.valueOf(i) + "] queued, and continue");
                                 continue;
                             }
                             queued_str = "";
@@ -125,12 +102,10 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                                 jsonObject_base = jsonObject_data.getJSONObject("base");
                                 alpha = jsonObject_base.getDouble("yaw") * (180/Math.PI);
                             } catch (JSONException e) {
-                                Log.e("Something wrong...", "continue");
+                                Log.d("Something wrong...", "continue");
                                 continue;
                             }
-//                            Log.e("JSON Conversion Successful: ", jsonObject.toString());
                         }
-//                        Log.e("***************** yaw: ", String.valueOf(json_yaw));
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -150,7 +125,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
         } catch (JSONException e) {
             e.printStackTrace();
         }
-//        Log.e("send: ", jsonString);
+//        Log.d("send: ", jsonString);
         byte[] cmd = jsonString.getBytes();
         outputStream.write(cmd);
     }
@@ -164,7 +139,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                 + "]"
                 + "}"
                 + "}";
-//        Log.e("send: ", jsonString);
+//        Log.d("send: ", jsonString);
         byte[] cmd = jsonString.getBytes();
         outputStream.write(cmd);
     }
@@ -173,7 +148,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
         String jsonString = "{"
                 + "\"c\": \"pose.resetOrigin\""
                 + "}";
-//        Log.e("send: ", jsonString);
+//        Log.d("send: ", jsonString);
         byte[] cmd = jsonString.getBytes();
         outputStream.write(cmd);
     }
@@ -187,7 +162,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                 + ",\"degreesWhileDriving\": 0"
                 + "}"
                 + "}";
-//        Log.e("send: ", jsonString);
+//        Log.d("send: ", jsonString);
         byte[] cmd = jsonString.getBytes();
         outputStream.write(cmd);
     }
@@ -206,7 +181,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                 + String.valueOf(turn)
                 + "}"
                 + "}";
-//        Log.e("send: ", jsonString);
+//        Log.d("send: ", jsonString);
         byte[] cmd = jsonString.getBytes();
         outputStream.write(cmd);
     }
@@ -258,47 +233,13 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
         }
     }
 
-
-/*
-    @Override
-    public void onSensorChanged(SensorEvent sensorEvent) {
-//        double accel_x = sensorEvent.values[0];
-//        double accel_y = sensorEvent.values[1];
-//        double accel_z = sensorEvent.values[2];
-//        Log.e("sensor type", String.valueOf(sensorEvent.sensor.getType()));
-        if (sensorEvent.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
-            SensorManager.getRotationMatrixFromVector(rotMatrix, sensorEvent.values);
-            SensorManager.getOrientation(rotMatrix, orientation);
-            beta = orientation[0] * (180 / Math.PI);
-            double pitch = orientation[1] * (180 / Math.PI);
-            double roll = orientation[2] * (180 / Math.PI);
-            long timestamp = sensorEvent.timestamp;
-            String values = String.format("(%4.0f, %4.0f, %4.0f)", beta, pitch, roll);
-        }
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-
-    }
-
-    public void stopSync() { //onStopped 이후에 Destroyed
-        sensorManager.unregisterListener(this);
-    }
-*/
-
     public void startSync() {
-//        if (toggleButton.isChecked()) {
-//            sensorManager.registerListener(this, accel, 2500);
-//        } else {
-//            sensorManager.unregisterListener(this);
-//        }
         threadCommand = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     while(outputStream == null) {
-                        Log.e("waiting for", "outputStream socket...");
+                        Log.d("waiting for", "outputStream socket...");
                         threadCommand.sleep(1000);
                     }
 
@@ -320,7 +261,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                     threadCommand.sleep(100);
 
                     while (alpha == 3000 || beta == 3000 || headTiltPercentage == -10) {
-                        Log.e("threadCommand Loop: ", "waiting for angle sync...");
+                        Log.d("threadCommand Loop: ", "waiting for angle sync...");
                         threadCommand.sleep(100);
                     }
 
@@ -359,20 +300,8 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                         }
                         throt = isStepping ? 0.5 : 0;
                         isAccessingShared = false;
-//                        rot = Math.abs(rot_angle) > angle_thresh ? (rot_angle > 0 ? -Math.min(1, rot_angle * Math.PI / 180) : Math.min(1, -rot_angle * Math.PI / 180)) : 0;
                         rot = Math.abs(rot_angle) > angle_thresh ? (rot_angle > 0 ? -1 : 1) : 0;
-//                        Log.e("Step update: ", String.valueOf(currStep) + " vs " + String.valueOf(prevStep));
                         commandNavigate(throt, rot);
-//                        if (Math.abs(rot_angle) > angle_thresh) {
-////                            commandTurnBy(rot_angle); // 속도 제어가 불가능한 것으로 보임
-//                            Log.e("rot_angle: ", String.valueOf(rot_angle * Math.PI / 180) + ", dbeta: " + String.valueOf(dbeta) + ", dalpha: " + String.valueOf(dalpha) + ", alpha: " + String.valueOf(alpha) + ", alpha0: " + String.valueOf(alpha0));
-//                            commandNavigate(0, rot_angle > 0 ? -Math.min(1, rot_angle * Math.PI / 180) : Math.min(1, -rot_angle * Math.PI / 180));
-//                        }
-/*
-                        maxrot = Math.abs(alpha - prevalpha) > maxrot ? Math.abs(alpha - prevalpha) : maxrot;
-                        Log.e("200ms rot angle: ", String.valueOf(maxrot)); // Test Result; 200ms rot angle:: 15.860699865459864
-                        prevalpha = alpha;
-                        */
                         threadCommand.sleep(100);
                         commandTiltTarget(headTiltPercentage);
                         threadCommand.sleep(100);
@@ -403,4 +332,6 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
         beta = angleX * (180 / Math.PI);
         headTiltPercentage = tiltAngleToPercentage(angleY * (180 / Math.PI));
     }
+
+    //TODO: Implement & Call stopSync on disconnection
 }

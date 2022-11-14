@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.net.Uri;
 import android.os.Bundle;
+import android.speech.tts.Voice;
 import android.view.Surface;
 
 import com.google.android.exoplayer2.ExoPlayer;
@@ -15,6 +16,7 @@ import constantin.renderingx.core.views.VrActivity;
 import constantin.renderingx.core.views.VrView;
 import constantin.renderingx.example.R;
 import constantin.renderingx.example.d3_telepresence_android.D3TelepresenceAndroid;
+import constantin.renderingx.example.voiceRecorderStreamer.VoiceRecorderStreamer;
 import constantin.video.core.gl.ISurfaceTextureAvailable;
 import constantin.video.core.player.VideoPlayer;
 import constantin.video.core.player.VideoSettings;
@@ -42,6 +44,7 @@ public class AExample360Video extends VrActivity {
 
     private GStreamerSurfaceView gStreamerSurfaceView;
     private D3TelepresenceAndroid d3TelepresenceAndroid;
+    private VoiceRecorderStreamer voiceRecorderStreamer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +60,9 @@ public class AExample360Video extends VrActivity {
 
         d3TelepresenceAndroid = new D3TelepresenceAndroid(this);
         d3TelepresenceAndroid.startSync();
+
+        voiceRecorderStreamer = new VoiceRecorderStreamer(this);
+        voiceRecorderStreamer.startRecording();
 
         // Use one of both ! Default to the player from VideoCore
         if(USE_GOOGLE_EXO_PLAYER_INSTEAD){
@@ -124,4 +130,5 @@ public class AExample360Video extends VrActivity {
         return exoPlayer;
     }
 
+    //TODO: stop connection on D3TelepresenceAndroid & VoiceRecorderStreamer on VR screen exit
 }
