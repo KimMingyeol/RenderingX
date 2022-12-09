@@ -21,6 +21,8 @@ import constantin.video.core.player.VideoSettings;
 
 import com.example.gstreamer_android.GStreamerSurfaceView;
 
+import java.io.IOException;
+
 //Uses the LiveVideo10ms VideoCore lib which is intended for live streaming, not file playback.
 //I recommend using android MediaPlayer if only playback from file is needed
 
@@ -56,6 +58,7 @@ public class AExample360Video extends VrActivity {
         gStreamerSurfaceView = new GStreamerSurfaceView(this);
 
         d3TelepresenceAndroid = new D3TelepresenceAndroid(this);
+//        d3TelepresenceAndroid.HttpPost();
         d3TelepresenceAndroid.startSync();
 
         // Use one of both ! Default to the player from VideoCore

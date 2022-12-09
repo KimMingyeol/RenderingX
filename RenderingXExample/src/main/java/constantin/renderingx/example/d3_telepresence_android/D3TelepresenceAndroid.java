@@ -1,16 +1,23 @@
 package constantin.renderingx.example.d3_telepresence_android;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.util.Log;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.ConnectException;
+import java.net.MalformedURLException;
 import java.net.Socket;
 
 import org.json.JSONException;
@@ -19,6 +26,11 @@ import org.json.JSONObject;
 import constantin.renderingx.example.stepcounter.Constants;
 import constantin.renderingx.example.stepcounter.StepCounter;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+
 /* From KimMingyeol/d3_telepresence_android repo. */
 public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCounter.HeadingListener {
     private StepCounter stepCounter;
@@ -26,19 +38,13 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     private boolean isStepping = false; // Shared (between two separate threads)
     private int consecutiveStop = 0; // Shared
     private boolean isAccessingShared = false;
-    private final int stopThresh = 3;
-
-//    private SensorManager sensorManager;
-//    private Sensor accel;
-
-//    private float rotMatrix[];
-//    private float orientation[];
+    private final int stopThresh = 4;
 
     public InputStream inputStream;
     public OutputStream outputStream;
     private Socket socket = null;
     private String ip = ""; // D3 robot's IP
-    private int port = 22023;
+    private int port = -1;
 
     Thread threadReceive;
     Thread threadCommand;
@@ -51,24 +57,17 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
 
     private double throt = 0;
     private double rot = 0;
+    private int sendPerLoop = 4; // one loop: 200ms
 
-    public D3TelepresenceAndroid(Context context) {
+    private double perceptual_x = 0;
+    private double perceptual_y = 0;
+
+    public D3TelepresenceAndroid(Context context){
         Handler uiHandler = new Handler(context.getMainLooper());
         stepCounter = new StepCounter(context, Constants.IS_POSITIVE_HEADING_CLOCKWISE);
         stepCounter.addStepListener(this, uiHandler);
         stepCounter.addHeadingListener(this, uiHandler, Math.toRadians(0.5), Double.POSITIVE_INFINITY);
-/*
-        sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-        accel = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 
-        if(accel != null) {
-            sensorManager.registerListener(this, accel, 2500);
-        } else {
-            Log.e("error: ", "no rotation sensor");
-        }
-        rotMatrix = new float[16];
-        orientation = new float[3];
-*/
         threadReceive = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -203,40 +202,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
         outputStream.write(cmd);
     }
 
-/*
-    @Override
-    public void onSensorChanged(SensorEvent sensorEvent) {
-//        double accel_x = sensorEvent.values[0];
-//        double accel_y = sensorEvent.values[1];
-//        double accel_z = sensorEvent.values[2];
-//        Log.e("sensor type", String.valueOf(sensorEvent.sensor.getType()));
-        if (sensorEvent.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
-            SensorManager.getRotationMatrixFromVector(rotMatrix, sensorEvent.values);
-            SensorManager.getOrientation(rotMatrix, orientation);
-            beta = orientation[0] * (180 / Math.PI);
-            double pitch = orientation[1] * (180 / Math.PI);
-            double roll = orientation[2] * (180 / Math.PI);
-            long timestamp = sensorEvent.timestamp;
-            String values = String.format("(%4.0f, %4.0f, %4.0f)", beta, pitch, roll);
-        }
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-
-    }
-
-    public void stopSync() { //onStopped 이후에 Destroyed
-        sensorManager.unregisterListener(this);
-    }
-*/
-
     public void startSync() {
-//        if (toggleButton.isChecked()) {
-//            sensorManager.registerListener(this, accel, 2500);
-//        } else {
-//            sensorManager.unregisterListener(this);
-//        }
         threadCommand = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -245,41 +211,28 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                         Log.e("waiting for", "outputStream socket...");
                         threadCommand.sleep(1000);
                     }
-                    commandRetract();
-                    threadCommand.sleep(2000);
-                    commandResetOrigin();
-                    threadCommand.sleep(500);
-                    commandSubscribe();
-
-                    threadCommand.sleep(100);
-                    while (alpha == 3000 || beta == 3000) {
+//                    commandRetract();
+//                    threadCommand.sleep(2000);
+                    while (beta == 3000) {
                         Log.e("threadCommand Loop: ", "waiting for angle sync...");
                         threadCommand.sleep(100);
                     }
-
-                    alpha0 = alpha;
-                    beta0 = beta;
+                    beta0 = beta; // beta: user's rotation state : We only care this right now
 
                     double dalpha = 0;
                     double dbeta = 0;
                     double rot_angle = 0;
+
+                    throt = 0;
+                    int loopNum = 0;
                     while(true) {
+                        Log.d("threadCommand: ", "in Loop");
+                        loopNum++;
+
                         if (Math.abs(beta - beta0) < 360 - Math.abs(beta - beta0)) {
                             dbeta = beta >= beta0 ? Math.abs(beta - beta0) : -Math.abs(beta - beta0);
                         } else {
                             dbeta = beta >= beta0 ? -(360 - Math.abs(beta - beta0)) : 360 - Math.abs(beta - beta0);
-                        }
-
-                        if (Math.abs(alpha - alpha0) < 360 - Math.abs(alpha - alpha0)) {
-                            dalpha = alpha >= alpha0 ? Math.abs(alpha - alpha0) : -Math.abs(alpha - alpha0);
-                        } else {
-                            dalpha = alpha >= alpha0 ? -(360 - Math.abs(alpha - alpha0)) : 360 - Math.abs(alpha - alpha0);
-                        }
-
-                        if (Math.abs(dbeta - dalpha) < 360 - Math.abs(dbeta - dalpha)) {
-                            rot_angle = dbeta >= dalpha ? Math.abs(dbeta - dalpha) : -Math.abs(dbeta - dalpha);
-                        } else {
-                            rot_angle = dbeta >= dalpha ? -(360 - Math.abs(dbeta - dalpha)) : 360 - Math.abs(dbeta - dalpha);
                         }
 
                         while(isAccessingShared) {
@@ -290,20 +243,28 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                         if(consecutiveStop > stopThresh) {
                             isStepping = false;
                         }
-                        throt = isStepping ? 0.5 : 0;
+
+                        rot = -dbeta;
+                        if(isStepping) {
+                            throt += 100; // mm scale
+                        } else {
+                            throt = 0;
+                        }
+
+                        Log.d("loopnum", String.valueOf(loopNum));
+
+                        if(loopNum % sendPerLoop == 0) {
+                            HttpPost(throt, rot);
+                            throt = 0;
+                        }
+
+//                        throt = isStepping ? 0.5 : 0;
                         isAccessingShared = false;
-//                        rot = Math.abs(rot_angle) > angle_thresh ? (rot_angle > 0 ? -Math.min(1, rot_angle * Math.PI / 180) : Math.min(1, -rot_angle * Math.PI / 180)) : 0;
-                        rot = Math.abs(rot_angle) > angle_thresh ? (rot_angle > 0 ? -1 : 1) : 0;
-//                        Log.e("Step update: ", String.valueOf(currStep) + " vs " + String.valueOf(prevStep));
-                        commandNavigate(throt, rot);
-//                        if (Math.abs(rot_angle) > angle_thresh) {
-////                            commandTurnBy(rot_angle); // 속도 제어가 불가능한 것으로 보임
-//                            Log.e("rot_angle: ", String.valueOf(rot_angle * Math.PI / 180) + ", dbeta: " + String.valueOf(dbeta) + ", dalpha: " + String.valueOf(dalpha) + ", alpha: " + String.valueOf(alpha) + ", alpha0: " + String.valueOf(alpha0));
-//                            commandNavigate(0, rot_angle > 0 ? -Math.min(1, rot_angle * Math.PI / 180) : Math.min(1, -rot_angle * Math.PI / 180));
-//                        }
+//                        rot = Math.abs(rot_angle) > angle_thresh ? (rot_angle > 0 ? -1 : 1) : 0;
+//                        commandNavigate(throt, rot); // one step = 30
                         threadCommand.sleep(200);
                     }
-                } catch (IOException | InterruptedException e) {
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
@@ -326,5 +287,70 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     @Override
     public void onRotation(double angleX, double angleY) {
         beta = angleX * (180 / Math.PI);
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    private void HttpPost(double r, double dtheta){
+        new AsyncTask<Void, Void, JSONObject>(){
+            @Override
+            protected JSONObject doInBackground(Void... voids) {
+
+                JSONObject result = null;
+                try{
+                    URL url = new URL("http://tbone.postech.ac.kr:20022/requestwarp/");
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+                    connection.setRequestProperty("Accept", "application/json");
+                    connection.setRequestProperty("Content-Type", "application/json");
+                    connection.setRequestMethod("POST");
+                    connection.setDoInput(true);
+                    connection.setDoOutput(true);
+                    connection.setUseCaches(false);
+                    connection.setConnectTimeout(15000);
+
+                    OutputStream os = connection.getOutputStream();
+                    String jsonString = "{\"r\": " + String.valueOf(r) + ", \"dtheta\": " + String.valueOf(dtheta) + "}";
+                    os.write(jsonString.getBytes(StandardCharsets.UTF_8));
+                    os.flush();
+                    os.close();
+
+                    int responseCode = connection.getResponseCode();
+                    if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_CREATED) {
+                        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                        String inputLine;
+                        StringBuffer response = new StringBuffer();
+                        while ((inputLine = in.readLine()) != null) {
+                            response.append(inputLine);
+                        }
+                        in.close();
+
+                    } else {
+                        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
+                        String inputLine;
+                        StringBuffer response = new StringBuffer();
+                        while ((inputLine = in.readLine()) != null) {
+                            response.append(inputLine);
+                        }
+                        in.close();
+                        result = new JSONObject(response.toString());
+                    }
+
+                } catch (ConnectException e) {
+                    e.printStackTrace();
+
+
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+
+                return result;
+            }
+
+            @Override
+            protected void onPostExecute(JSONObject jsonObject) {
+                super.onPostExecute(jsonObject);
+            }
+
+        }.execute();
     }
 }
