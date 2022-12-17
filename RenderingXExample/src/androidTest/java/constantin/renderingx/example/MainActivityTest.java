@@ -68,7 +68,6 @@ public class MainActivityTest {
     private void testVr360Video(){
         Intent i = new Intent();
         i.putExtra(AExample360Video.KEY_SPHERE_MODE,AExample360Video.SPHERE_MODE_GVR_EQUIRECTANGULAR);
-        i.putExtra(AExample360Video.KEY_VIDEO_FILENAME,"360DegreeVideos/testRoom1_1920Mono.mp4");
         mExampleVRRendering360VideoRule.launchActivity(i);
         try { Thread.sleep(WAIT_TIME); } catch (InterruptedException e) { e.printStackTrace(); }
         /*final int nUpdates=mExampleVRRendering360VideoRule.getActivity().getNSurfaceTextureUpdateReturnedTrue();

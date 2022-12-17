@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
 <!--    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>-->
 
     <application
@@ -25,23 +26,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name="constantin.renderingx.example.supersync.AExampleSuperSync"
-            android:screenOrientation="landscape"
-            android:theme="@style/MyStyleFullscreen"
-            tools:ignore="LockedOrientationActivity" />
-        <activity
-            android:name="constantin.renderingx.example.mono.AExampleRendering"
-            android:theme="@style/MyStyleFullscreen"
-            android:screenOrientation="landscape" />
-        <activity android:name="constantin.renderingx.example.stereo.distortion.AExampleDistortion"
-            android:theme="@style/MyStyleFullscreen"
-            android:screenOrientation="landscape"
-            tools:ignore="LockedOrientationActivity" />
         <activity android:name="constantin.renderingx.example.stereo.video360degree.AExample360Video"
             android:theme="@style/MyStyleFullscreen"
             android:screenOrientation="landscape"
             tools:ignore="LockedOrientationActivity" />
+
+        <provider
+            android:authorities="constantin.renderingx.example.fileprovider"
+            android:name="androidx.core.content.FileProvider"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/fileprovider_paths"/>
+        </provider>
     </application>
 
 </manifest>

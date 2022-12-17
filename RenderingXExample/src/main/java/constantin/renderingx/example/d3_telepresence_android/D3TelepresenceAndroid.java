@@ -35,8 +35,8 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     public InputStream inputStream;
     public OutputStream outputStream;
     private Socket socket = null;
-    private String ip = ""; // D3 robot's IP
-    private int port = -1;
+    private String ip = "141.223.208.180"; // D3 robot's IP
+    private int port = 22023;
 
     Thread threadReceive;
     Thread threadCommand;
@@ -303,7 +303,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                         rot = Math.abs(rot_angle) > angle_thresh ? (rot_angle > 0 ? -1 : 1) : 0;
                         commandNavigate(throt, rot);
                         threadCommand.sleep(100);
-                        commandTiltTarget(headTiltPercentage);
+//                        commandTiltTarget(headTiltPercentage);
                         threadCommand.sleep(100);
                     }
                 } catch (IOException | InterruptedException e) {
@@ -334,4 +334,16 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     }
 
     //TODO: Implement & Call stopSync on disconnection
+    private void closeD3Socket() {
+        if (socket == null)
+            return;
+
+        try {
+            socket.close();
+            inputStream.close();
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
