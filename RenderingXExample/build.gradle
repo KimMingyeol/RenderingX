@@ -72,6 +72,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-perf:20.0.5'
 
     implementation project(path: ':RenderingXCore')
+    implementation 'com.google.android.material:material:1.7.0'
     //
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'

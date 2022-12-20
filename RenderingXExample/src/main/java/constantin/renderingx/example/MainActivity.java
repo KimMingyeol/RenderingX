@@ -30,6 +30,9 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
 import android.util.Base64;
+import android.widget.EditText;
+
+import com.google.android.material.textfield.TextInputEditText;
 
 import constantin.renderingx.core.deviceinfo.AWriteGLESInfo;
 import constantin.renderingx.core.deviceinfo.Extensions;
@@ -42,6 +45,11 @@ import constantin.helper.RequestPermissionHelper;
 
 public class MainActivity extends AppCompatActivity {
     private Context context;
+
+    private TextInputEditText double3IPText;
+    private TextInputEditText double3PortText;
+    private TextInputEditText serverIPText;
+    private TextInputEditText serverPortText;
     private Button uploadButton;
 
     private File faceCaptureDirectory;
@@ -51,8 +59,11 @@ public class MainActivity extends AppCompatActivity {
     private Socket faceCaptureUploadSocket = null;
     private InputStream faceCaptureUploadInputStream = null;
     private OutputStream faceCaptureUploadOutputStream = null;
-    private String ip = "";
-    private int port = -1;
+
+    private String double3IP = "";
+    private int double3Port = -1;
+    private String serverIP = "";
+    private int serverPort = -1;
     private boolean isServerReadyToReceive;
 
     private String base64FaceCaptureString;
@@ -76,6 +87,11 @@ public class MainActivity extends AppCompatActivity {
         if (!faceCaptureDirectory.exists())
             faceCaptureDirectory.mkdirs();
         cameraCaptureFileName = "neutralFace";
+
+        double3IPText = findViewById(R.id.Double3IPText);
+        double3PortText = findViewById(R.id.Double3PortText);
+        serverIPText = findViewById(R.id.ServerIPText);
+        serverPortText = findViewById(R.id.ServerPortText);
 
         uploadButton = findViewById(R.id.UploadButton);
         uploadButton.setOnClickListener(new View.OnClickListener() {
@@ -110,7 +126,8 @@ public class MainActivity extends AppCompatActivity {
                         int numOfBytes;
                         try {
                             if (faceCaptureUploadSocket == null) {
-                                faceCaptureUploadSocket = new Socket(ip, port);
+                                setAddressByTextInputEditText();
+                                faceCaptureUploadSocket = new Socket(serverIP, serverPort);
                                 faceCaptureUploadInputStream = faceCaptureUploadSocket.getInputStream();
                                 faceCaptureUploadOutputStream = faceCaptureUploadSocket.getOutputStream();
                             }
@@ -161,6 +178,11 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 final Intent intent = new Intent().setClass(context, AExample360Video.class);
                 intent.putExtra(AExample360Video.KEY_SPHERE_MODE, AExample360Video.SPHERE_MODE_GVR_EQUIRECTANGULAR);
+                setAddressByTextInputEditText();
+                intent.putExtra("Double3 IP", double3IP);
+                intent.putExtra("Double3 Port", double3Port);
+                intent.putExtra("Server IP", serverIP);
+                intent.putExtra("Server Port", serverPort);
                 startActivity(intent);
             }
         });
@@ -205,6 +227,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return faceCaptureBitmap;
+    }
+
+    private void setAddressByTextInputEditText() {
+        double3IP = double3IPText.getText().toString();
+        double3Port = Integer.parseInt(double3PortText.getText().toString());
+        serverIP = serverIPText.getText().toString();
+        serverPort = Integer.parseInt(serverPortText.getText().toString());
     }
 
     // TODO: stop connection!

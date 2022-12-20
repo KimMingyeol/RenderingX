@@ -37,21 +37,32 @@ public class AExample360Video extends VrActivity {
     private D3TelepresenceAndroid d3TelepresenceAndroid;
     private VoiceRecorderStreamer voiceRecorderStreamer;
 
+    private String double3IP;
+    private int double3Port;
+    private String serverIP;
+    private int serverPort;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        final Bundle bundle=getIntent().getExtras();
-        final int SPHERE_MODE=bundle.getInt(KEY_SPHERE_MODE,0);
+        final Bundle bundle = getIntent().getExtras();
+        final int SPHERE_MODE = bundle.getInt(KEY_SPHERE_MODE,0);
+
+        double3IP = bundle.getString("Double3 IP");
+        double3Port = bundle.getInt("Double3 Port");
+        serverIP = bundle.getString("Server IP");
+        serverPort = bundle.getInt("Server Port");
+
         //start initialization
-        final VrView mVrView=new VrView(this);
+        final VrView mVrView = new VrView(this);
 
         gStreamerSurfaceView = new GStreamerSurfaceView(this);
 
-        d3TelepresenceAndroid = new D3TelepresenceAndroid(this);
+        d3TelepresenceAndroid = new D3TelepresenceAndroid(this, double3IP, double3Port);
         d3TelepresenceAndroid.startSync();
 
-//        voiceRecorderStreamer = new VoiceRecorderStreamer(this);
-//        voiceRecorderStreamer.startRecording();
+        voiceRecorderStreamer = new VoiceRecorderStreamer(this, serverIP, serverPort);
+        voiceRecorderStreamer.startRecording();
 
         final ISurfaceTextureAvailable iSurfaceTextureAvailableGstreamer = new ISurfaceTextureAvailable() {
             @Override

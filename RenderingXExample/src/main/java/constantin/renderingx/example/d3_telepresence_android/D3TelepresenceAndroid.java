@@ -35,8 +35,8 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     public InputStream inputStream;
     public OutputStream outputStream;
     private Socket socket = null;
-    private String ip = "141.223.208.180"; // D3 robot's IP
-    private int port = 22023;
+    private String ip = ""; // D3 robot's IP
+    private int port = -1;
 
     Thread threadReceive;
     Thread threadCommand;
@@ -50,8 +50,11 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     private double throt = 0;
     private double rot = 0;
 
-    public D3TelepresenceAndroid(Context context) {
+    public D3TelepresenceAndroid(Context context, String ip, int port) {
         Handler uiHandler = new Handler(context.getMainLooper());
+        this.ip = ip;
+        this.port = port;
+
         stepCounter = new StepCounter(context, Constants.IS_POSITIVE_HEADING_CLOCKWISE);
         stepCounter.addStepListener(this, uiHandler);
         stepCounter.addHeadingListener(this, uiHandler, Math.toRadians(0.5), Double.POSITIVE_INFINITY);
