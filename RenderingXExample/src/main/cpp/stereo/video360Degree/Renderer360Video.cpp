@@ -58,7 +58,7 @@ void Renderer360Video::onDrawFrame(JNIEnv* env) {
     }*/
 
     surfaceTextureUpdate.updateAndCheck(env);
-    MLOGD<<"FPS: "<<mFPSCalculator.getCurrentFPS();
+//    MLOGD<<"FPS: "<<mFPSCalculator.getCurrentFPS();
 
     //Update the head position (rotation) then leave it untouched during the frame
     vrCompositorRenderer.updateLatestHeadSpaceFromStartSpaceRotation();
@@ -89,7 +89,7 @@ void Renderer360Video::onSecondaryContextDoWork(JNIEnv *env) {
     vrRenderBuffer2.unbindAndSwap();
     //MLOGD<<"Do work";
     mFPSCalculatorRenderbuffer.tick();
-    MLOGD<<"OSD FPS: "<<mFPSCalculatorRenderbuffer.getCurrentFPS();
+//    MLOGD<<"OSD FPS: "<<mFPSCalculatorRenderbuffer.getCurrentFPS();
 }
 
 

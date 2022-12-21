@@ -1,17 +1,25 @@
 package constantin.renderingx.example.d3_telepresence_android;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.util.Log;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.ConnectException;
+import java.net.HttpURLConnection;
 import java.net.Socket;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -268,6 +276,9 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                         threadCommand.sleep(100);
                     }
 
+                    HttpPost("http://141.223.208.180:22029/initiate_movement/", -1, -1);
+                    Log.d("Webrequest", "initiate_movement sent");
+
                     alpha0 = alpha;
                     beta0 = beta;
 
@@ -296,18 +307,20 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                         while(isAccessingShared) {
                             Log.d("threadCommand: ", "Waiting for Lock");
                         }
+
                         isAccessingShared = true;
                         consecutiveStop++;
                         if(consecutiveStop > stopThresh) {
                             isStepping = false;
                         }
-                        throt = isStepping ? 0.5 : 0;
+                        throt = isStepping ? 0.75 : 0;
                         isAccessingShared = false;
+
                         rot = Math.abs(rot_angle) > angle_thresh ? (rot_angle > 0 ? -1 : 1) : 0;
-                        commandNavigate(throt, rot);
-                        threadCommand.sleep(100);
-//                        commandTiltTarget(headTiltPercentage);
-                        threadCommand.sleep(100);
+
+//                        commandNavigate(throt, rot);
+                        HttpPost("http://141.223.208.180:22029/movement/", throt, rot);
+                        threadCommand.sleep(200);
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -348,5 +361,69 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+
+    @SuppressLint("StaticFieldLeak")
+    private void HttpPost(String postURL, double throttle, double turn){
+        new AsyncTask<Void, Void, JSONObject>(){
+            @Override
+            protected JSONObject doInBackground(Void... voids) {
+                Log.d("HttpPost", "sending");
+                JSONObject result = null;
+                try{
+                    URL url = new URL(postURL);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+                    connection.setRequestProperty("Accept", "application/json");
+                    connection.setRequestProperty("Content-Type", "application/json");
+                    connection.setRequestMethod("POST");
+                    connection.setDoInput(true);
+                    connection.setDoOutput(true);
+                    connection.setUseCaches(false);
+                    connection.setConnectTimeout(20000);
+
+                    OutputStream os = connection.getOutputStream();
+                    String jsonString = "{\"throttle\": " + throttle + ", \"turn\": " + turn + "}";
+                    os.write(jsonString.getBytes(StandardCharsets.UTF_8));
+                    os.flush();
+                    os.close();
+
+                    int responseCode = connection.getResponseCode();
+                    if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_CREATED) {
+                        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                        String inputLine;
+                        StringBuffer response = new StringBuffer();
+                        while ((inputLine = in.readLine()) != null) {
+                            response.append(inputLine);
+                        }
+                        in.close();
+
+                    } else {
+                        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
+                        String inputLine;
+                        StringBuffer response = new StringBuffer();
+                        while ((inputLine = in.readLine()) != null) {
+                            response.append(inputLine);
+                        }
+                        in.close();
+                        result = new JSONObject(response.toString());
+                    }
+
+                } catch (ConnectException e) {
+                    e.printStackTrace();
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+
+                return result;
+            }
+
+            @Override
+            protected void onPostExecute(JSONObject jsonObject) {
+                super.onPostExecute(jsonObject);
+            }
+
+        }.execute();
     }
 }
