@@ -34,7 +34,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
     private boolean isStepping = false; // Shared (between two separate threads)
     private int consecutiveStop = 0; // Shared
     private boolean isAccessingShared = false;
-    private final int stopThresh = 3;
+    private final int stopThresh = 2;
 
     private final double maxTiltAngle = 26;
     private final double minTiltAngle = -21.5;
@@ -276,7 +276,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                         threadCommand.sleep(100);
                     }
 
-                    HttpPost("http://141.223.208.180:22029/initiate_movement/", -1, -1);
+                    HttpPost("http://141.223.208.180:22042/initiate_movement/", -1, -1);
                     Log.d("Webrequest", "initiate_movement sent");
 
                     alpha0 = alpha;
@@ -319,7 +319,7 @@ public class D3TelepresenceAndroid implements StepCounter.StepListener, StepCoun
                         rot = Math.abs(rot_angle) > angle_thresh ? (rot_angle > 0 ? -1 : 1) : 0;
 
 //                        commandNavigate(throt, rot);
-                        HttpPost("http://141.223.208.180:22029/movement/", throt, rot);
+                        HttpPost("http://141.223.208.180:22042/movement/", throt, rot);
                         threadCommand.sleep(200);
                     }
                 } catch (IOException | InterruptedException e) {
